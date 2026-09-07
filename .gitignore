@@ -1,0 +1,35 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# env files (all - never commit secrets)
+.env
+.env.local
+.env*.local
+!.env.example
+
+# next.js
+.next/
+out/
+
+# prisma
+packages/db/generated/
+
+# turbo
+.turbo/
+
+# build outputs
+dist/
+build/
+
+# misc
+.DS_Store
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# prisma agent skills (auto-installed docs, not project code)
+packages/db/.claude/
+packages/db/.agents/
+packages/db/.windsurf/
+packages/db/skills-lock.json
