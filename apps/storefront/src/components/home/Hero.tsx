@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { motion, type Variants } from "framer-motion";
+import { HeroSlideshow } from "./HeroSlideshow";
 
 const container: Variants = {
   hidden: {},
@@ -21,7 +22,7 @@ const item: Variants = {
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-aubergine via-aubergine to-[#5c2350]">
+    <section className="relative overflow-hidden bg-gradient-to-b from-[#7a3568] via-aubergine-light to-aubergine">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-16 sm:py-24 grid md:grid-cols-2 gap-12 items-center">
         <motion.div
           variants={container}
@@ -31,10 +32,14 @@ export function Hero() {
         >
           <motion.h1
             variants={item}
-            className="font-display text-4xl sm:text-5xl lg:text-6xl leading-[1.1] font-semibold"
+            className="font-sans font-extrabold leading-[1.1]"
           >
-            Our fragrance collection inspires &amp;{" "}
-            <span className="italic text-magenta-light">boosts confidence.</span>
+            <span className="block text-2xl sm:text-3xl lg:text-4xl">
+              Our fragrance collection inspires &amp;
+            </span>
+            <span className="block text-4xl sm:text-5xl lg:text-6xl mt-1">
+              Boosts confidence.
+            </span>
           </motion.h1>
           <motion.p
             variants={item}
@@ -57,14 +62,8 @@ export function Hero() {
           initial={{ opacity: 0, scale: 0.94 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.7, ease: "easeOut", delay: 0.2 }}
-          className="relative aspect-square max-w-md mx-auto w-full"
-          aria-hidden="true"
         >
-          <div className="absolute inset-4 rounded-[2rem] bg-gradient-to-br from-lavender via-lavender-light to-cream/40 rotate-3" />
-          <div className="absolute inset-4 rounded-[2rem] bg-gradient-to-tl from-magenta/30 via-transparent to-transparent -rotate-2" />
-          <div className="absolute inset-10 flex items-end justify-center">
-            <div className="w-24 h-40 sm:w-28 sm:h-48 rounded-t-full rounded-b-lg bg-gradient-to-b from-white/90 to-white/60 backdrop-blur-sm shadow-2xl" />
-          </div>
+          <HeroSlideshow />
         </motion.div>
       </div>
     </section>

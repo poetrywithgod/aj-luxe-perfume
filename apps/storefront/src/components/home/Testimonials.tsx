@@ -15,42 +15,61 @@ const testimonials = [
     quote:
       "Fast delivery, secure packaging, and amazing scents. I keep coming back for more!",
   },
+  {
+    name: "Devon Lake",
+    quote:
+      "The scent recommendations actually matched what I described. My new signature fragrance came from AJ Luxe.",
+  },
+  {
+    name: "Amara Chukwu",
+    quote:
+      "Every order has arrived exactly as described, well packaged, and on time. Reliable is rare in this market.",
+  },
 ];
 
-export function Testimonials() {
-  return (
-    <section className="bg-lavender-light/40">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-16 grid md:grid-cols-2 gap-12 items-start">
-        <div>
-          <h2 className="font-display text-3xl sm:text-4xl font-semibold text-aubergine">
-            What our customers say
-          </h2>
-          <p className="mt-4 text-charcoal-soft max-w-sm">
-            Our customers consistently share that every purchase from AJ
-            Luxe Perfume delivers confidence, luxury, elegance, and
-            sophistication.
-          </p>
-        </div>
+function initials(name: string) {
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2);
+}
 
-        <div className="space-y-4">
-          {testimonials.map((t, i) => (
-            <div
-              key={t.name}
-              className="bg-white rounded-2xl p-5 shadow-sm"
-              style={{ marginLeft: i % 2 === 1 ? "2rem" : 0 }}
-            >
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-9 h-9 rounded-full bg-lavender shrink-0" />
-                <p className="font-display font-semibold text-charcoal">
-                  {t.name}
-                </p>
+export function Testimonials() {
+  // Duplicated once so the marquee track can loop seamlessly at -50%.
+  const track = [...testimonials, ...testimonials];
+
+  return (
+    <section className="bg-lavender-light/40 py-16 overflow-hidden">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 text-center mb-10">
+        <h2 className="font-display text-3xl sm:text-4xl font-semibold text-aubergine">
+          What our customers say
+        </h2>
+        <p className="mt-4 text-charcoal-soft max-w-md mx-auto">
+          Our customers consistently share that every purchase from AJ Luxe
+          Perfume delivers confidence, luxury, elegance, and sophistication.
+        </p>
+      </div>
+
+      <div className="marquee-track flex w-max gap-6 px-4 sm:px-6">
+        {track.map((t, i) => (
+          <div
+            key={`${t.name}-${i}`}
+            className="marquee-card shrink-0 w-72 sm:w-80 bg-white rounded-2xl p-6 shadow-sm transition-all duration-300 ease-out hover:scale-105 hover:shadow-lg"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full bg-lavender flex items-center justify-center text-sm font-semibold text-aubergine shrink-0">
+                {initials(t.name)}
               </div>
-              <p className="text-sm text-charcoal-soft leading-relaxed">
-                {t.quote}
+              <p className="font-display font-semibold text-charcoal">
+                {t.name}
               </p>
             </div>
-          ))}
-        </div>
+            <p className="text-sm text-charcoal-soft leading-relaxed">
+              {t.quote}
+            </p>
+          </div>
+        ))}
       </div>
     </section>
   );

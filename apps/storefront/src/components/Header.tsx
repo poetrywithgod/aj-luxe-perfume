@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Search, ShoppingBag, User, LogOut, ChevronDown } from "lucide-react";
+import { Logo } from "./Logo";
 
 const categories = [
   { label: "Perfumes", href: "/shop/perfumes" },
@@ -34,14 +35,10 @@ export function Header() {
       {/* Main header: logo, search, icons */}
       <div className="border-b border-charcoal/10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4 flex items-center gap-6">
-          <Link href="/" className="shrink-0">
-            <span className="font-display text-2xl sm:text-3xl font-semibold text-aubergine leading-none block">
-              AJ Luxe Perfume
-            </span>
-            <span className="text-[11px] tracking-wide text-charcoal-soft block mt-0.5">
-              Your Fragrance Journey is Our Priority
-            </span>
-          </Link>
+          <Logo />
+          <span className="hidden lg:block text-[11px] tracking-wide text-charcoal-soft -ml-3">
+            Your Fragrance Journey is Our Priority
+          </span>
 
           <div className="hidden md:flex flex-1 max-w-md ml-auto relative">
             <Search
