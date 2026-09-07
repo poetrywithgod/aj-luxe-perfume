@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -10,4 +5,193 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+enum OrderStatus {
+  PENDING
+  PREPARING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CARD
+  BANK_TRANSFER
+  PAY_ON_DELIVERY
+}
+
+enum CustomerStatus {
+  ACTIVE
+  VIP
+  INACTIVE
+  BLOCKED
+}
+
+enum ReviewStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+}
+
+model Customer {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String
+  firstName     String
+  lastName      String
+  phone         String?
+  status        CustomerStatus @default(ACTIVE)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  orders        Order[]
+  reviews       Review[]
+  conversations Conversation[]
+
+  @@map("customers")
+}
+
+model AdminUser {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+
+  messages     Message[]
+
+  @@map("admin_users")
+}
+
+model Category {
+  id       String    @id @default(uuid())
+  name     String    @unique
+  slug     String    @unique
+  products Product[]
+
+  @@map("categories")
+}
+
+model Brand {
+  id       String    @id @default(uuid())
+  name     String    @unique
+  slug     String    @unique
+  products Product[]
+
+  @@map("brands")
+}
+
+model Product {
+  id            String   @id @default(uuid())
+  name          String
+  slug          String   @unique
+  description   String
+  price         Decimal  @db.Decimal(10, 2)
+  volumeMl      Int
+  stock         Int      @default(0)
+  scentProfile  String?
+  gender        String?
+  images        String[]
+  isBestSeller  Boolean  @default(false)
+  isNewProduct  Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  categoryId    String?
+  category      Category? @relation(fields: [categoryId], references: [id])
+  brandId       String?
+  brand         Brand?    @relation(fields: [brandId], references: [id])
+
+  orderItems    OrderItem[]
+  reviews       Review[]
+
+  @@map("products")
+}
+
+model Order {
+  id              String        @id @default(uuid())
+  orderNumber     String        @unique
+  status          OrderStatus   @default(PENDING)
+  paymentMethod   PaymentMethod
+  subtotal        Decimal       @db.Decimal(10, 2)
+  shippingFee     Decimal       @db.Decimal(10, 2) @default(0)
+  discount        Decimal       @db.Decimal(10, 2) @default(0)
+  total           Decimal       @db.Decimal(10, 2)
+
+  firstName       String
+  lastName        String
+  email           String
+  phone           String
+  address         String
+  state           String
+  city            String
+  customerNote    String?
+
+  paystackRef     String?
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  customerId      String?
+  customer        Customer?     @relation(fields: [customerId], references: [id])
+
+  items           OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id         String   @id @default(uuid())
+  quantity   Int
+  priceEach  Decimal  @db.Decimal(10, 2)
+
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+model Review {
+  id         String       @id @default(uuid())
+  rating     Int
+  comment    String
+  status     ReviewStatus @default(PENDING)
+  createdAt  DateTime     @default(now())
+
+  productId  String
+  product    Product      @relation(fields: [productId], references: [id])
+  customerId String?
+  customer   Customer?    @relation(fields: [customerId], references: [id])
+
+  @@map("reviews")
+}
+
+model Conversation {
+  id         String    @id @default(uuid())
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  customerId String
+  customer   Customer  @relation(fields: [customerId], references: [id])
+
+  messages   Message[]
+
+  @@map("conversations")
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  body           String
+  createdAt      DateTime     @default(now())
+
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  senderAdminId  String?
+  senderAdmin    AdminUser?   @relation(fields: [senderAdminId], references: [id])
+
+  @@map("messages")
 }
