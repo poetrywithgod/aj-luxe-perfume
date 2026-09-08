@@ -48,7 +48,10 @@ export default function RootLayout({
       lang="en"
       className={`${cormorant.variable} ${manrope.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-cream text-charcoal font-sans">
+      <body
+        className="min-h-full flex flex-col bg-cream text-charcoal font-sans"
+        suppressHydrationWarning
+      >
         <main className="flex-1 flex flex-col">{children}</main>
         <Footer />
       </body>

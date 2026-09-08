@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronDown } from "lucide-react";
-import { prisma } from "db";
+import { prisma, withDbRetry } from "db";
 import { ProductCard } from "@/components/ProductCard";
 import { Filters, type FacetOption } from "@/components/shop/Filters";
 import { Pagination } from "@/components/shop/Pagination";
@@ -61,7 +61,9 @@ function priceBucketWhere(keys: string[]) {
 
 async function getCategory(slug: string | undefined) {
   if (!slug) return null;
-  const category = await prisma.category.findUnique({ where: { slug } });
+  const category = await withDbRetry(() =>
+    prisma.category.findUnique({ where: { slug } }),
+  );
   if (!category) notFound();
   return category;
 }
@@ -72,7 +74,7 @@ export async function generateMetadata({
   const { category: categorySegments } = await params;
   const slug = categorySegments?.[0];
   const category = slug
-    ? await prisma.category.findUnique({ where: { slug } })
+    ? await withDbRetry(() => prisma.category.findUnique({ where: { slug } }))
     : null;
 
   const title = category ? category.name : "Shop All Fragrances";
@@ -123,45 +125,47 @@ export default async function ShopPage({ params, searchParams }: PageProps) {
     brandGroups,
     brandList,
     priceCounts,
-  ] = await Promise.all([
-    prisma.product.findMany({
-      where,
-      include: {
-        brand: true,
-        reviews: { where: { status: "CONFIRMED" }, select: { rating: true } },
-      },
-      orderBy: SORT_OPTIONS[sortKey].orderBy,
-      take: PAGE_SIZE,
-      skip: (currentPage - 1) * PAGE_SIZE,
-    }),
-    prisma.product.count({ where }),
-    Promise.all(
-      GENDERS.map((gender) =>
-        prisma.product.count({ where: { ...categoryWhere, gender } }),
+  ] = await withDbRetry(() =>
+    Promise.all([
+      prisma.product.findMany({
+        where,
+        include: {
+          brand: true,
+          reviews: { where: { status: "CONFIRMED" }, select: { rating: true } },
+        },
+        orderBy: SORT_OPTIONS[sortKey].orderBy,
+        take: PAGE_SIZE,
+        skip: (currentPage - 1) * PAGE_SIZE,
+      }),
+      prisma.product.count({ where }),
+      Promise.all(
+        GENDERS.map((gender) =>
+          prisma.product.count({ where: { ...categoryWhere, gender } }),
+        ),
       ),
-    ),
-    prisma.product.groupBy({
-      by: ["scentProfile"],
-      where: { ...categoryWhere, scentProfile: { not: null } },
-      _count: { _all: true },
-    }),
-    prisma.product.groupBy({
-      by: ["brandId"],
-      where: { ...categoryWhere, brandId: { not: null } },
-      _count: { _all: true },
-    }),
-    prisma.brand.findMany({ orderBy: { name: "asc" } }),
-    Promise.all(
-      PRICE_BUCKETS.map((b) =>
-        prisma.product.count({
-          where: {
-            ...categoryWhere,
-            price: { gte: b.min, ...(b.max !== undefined && { lt: b.max }) },
-          },
-        }),
+      prisma.product.groupBy({
+        by: ["scentProfile"],
+        where: { ...categoryWhere, scentProfile: { not: null } },
+        _count: { _all: true },
+      }),
+      prisma.product.groupBy({
+        by: ["brandId"],
+        where: { ...categoryWhere, brandId: { not: null } },
+        _count: { _all: true },
+      }),
+      prisma.brand.findMany({ orderBy: { name: "asc" } }),
+      Promise.all(
+        PRICE_BUCKETS.map((b) =>
+          prisma.product.count({
+            where: {
+              ...categoryWhere,
+              price: { gte: b.min, ...(b.max !== undefined && { lt: b.max }) },
+            },
+          }),
+        ),
       ),
-    ),
-  ]);
+    ]),
+  );
 
   const counts = Object.fromEntries(
     GENDERS.map((gender, i) => [gender, genderCounts[i]]),

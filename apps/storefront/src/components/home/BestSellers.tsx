@@ -1,17 +1,19 @@
 import Link from "next/link";
-import { prisma } from "db";
+import { prisma, withDbRetry } from "db";
 import { ProductCard } from "@/components/ProductCard";
 
 export async function BestSellers() {
-  const products = await prisma.product.findMany({
-    where: { isBestSeller: true },
-    include: {
-      brand: true,
-      reviews: { where: { status: "CONFIRMED" }, select: { rating: true } },
-    },
-    take: 8,
-    orderBy: { createdAt: "desc" },
-  });
+  const products = await withDbRetry(() =>
+    prisma.product.findMany({
+      where: { isBestSeller: true },
+      include: {
+        brand: true,
+        reviews: { where: { status: "CONFIRMED" }, select: { rating: true } },
+      },
+      take: 8,
+      orderBy: { createdAt: "desc" },
+    }),
+  );
 
   return (
     <section className="mx-auto max-w-7xl px-4 sm:px-6 py-16">

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Star } from "lucide-react";
-import { prisma } from "db";
+import { prisma, withDbRetry } from "db";
 import { ProductCard } from "@/components/ProductCard";
 import { AddToCartControl } from "@/components/product/AddToCartControl";
 import { ReviewCarousel } from "@/components/product/ReviewCarousel";
@@ -29,7 +29,9 @@ export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const product = await prisma.product.findUnique({ where: { slug } });
+  const product = await withDbRetry(() =>
+    prisma.product.findUnique({ where: { slug } }),
+  );
   if (!product) return { title: "Product not found" };
   return {
     title: `${product.name} | AJ Luxe Perfume`,
@@ -40,18 +42,20 @@ export async function generateMetadata({
 export default async function ProductPage({ params }: PageProps) {
   const { slug } = await params;
 
-  const product = await prisma.product.findUnique({
-    where: { slug },
-    include: {
-      brand: true,
-      category: true,
-      reviews: {
-        where: { status: "CONFIRMED" },
-        include: { customer: true },
-        orderBy: { createdAt: "desc" },
+  const product = await withDbRetry(() =>
+    prisma.product.findUnique({
+      where: { slug },
+      include: {
+        brand: true,
+        category: true,
+        reviews: {
+          where: { status: "CONFIRMED" },
+          include: { customer: true },
+          orderBy: { createdAt: "desc" },
+        },
       },
-    },
-  });
+    }),
+  );
 
   if (!product) notFound();
 
@@ -60,18 +64,20 @@ export default async function ProductPage({ params }: PageProps) {
     ? ratings.reduce((a, b) => a + b, 0) / ratings.length
     : 0;
 
-  const relatedProducts = await prisma.product.findMany({
-    where: {
-      id: { not: product.id },
-      ...(product.categoryId && { categoryId: product.categoryId }),
-    },
-    include: {
-      brand: true,
-      reviews: { where: { status: "CONFIRMED" }, select: { rating: true } },
-    },
-    take: 3,
-    orderBy: { createdAt: "desc" },
-  });
+  const relatedProducts = await withDbRetry(() =>
+    prisma.product.findMany({
+      where: {
+        id: { not: product.id },
+        ...(product.categoryId && { categoryId: product.categoryId }),
+      },
+      include: {
+        brand: true,
+        reviews: { where: { status: "CONFIRMED" }, select: { rating: true } },
+      },
+      take: 3,
+      orderBy: { createdAt: "desc" },
+    }),
+  );
 
   const highlights = highlightsFrom(product.description);
 
