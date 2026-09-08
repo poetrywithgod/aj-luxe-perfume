@@ -2,12 +2,27 @@
 
 import { useState } from "react";
 import { Minus, Plus } from "lucide-react";
+import { useCart } from "@/lib/cart-context";
 
-// Local quantity state only — no real cart context/API exists yet, so this
-// doesn't persist or affect the header's cart badge/subtotal. Swap in real
-// cart wiring once that backend exists.
-export function AddToCartControl() {
+type AddToCartControlProps = {
+  productId: string;
+  slug: string;
+  name: string;
+  price: number;
+  image?: string;
+  volumeMl?: number;
+};
+
+export function AddToCartControl({
+  productId,
+  slug,
+  name,
+  price,
+  image,
+  volumeMl,
+}: AddToCartControlProps) {
   const [qty, setQty] = useState(1);
+  const { addItem } = useCart();
 
   return (
     <div className="flex items-center gap-4">
@@ -34,6 +49,9 @@ export function AddToCartControl() {
       </div>
       <button
         type="button"
+        onClick={() =>
+          addItem({ productId, slug, name, image, price, volumeMl }, qty)
+        }
         className="flex-1 rounded-xl bg-aubergine text-cream text-base font-semibold py-3.5 shadow-lg shadow-aubergine/20 hover:bg-aubergine-light transition-colors"
       >
         Add to Cart

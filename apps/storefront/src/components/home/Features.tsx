@@ -33,8 +33,8 @@ export function Features() {
           once uploaded via the admin panel.
         */}
         <div className="relative aspect-[4/3] max-w-md mx-auto w-full">
-          <div className="absolute left-0 bottom-0 w-32 sm:w-36 h-40 sm:h-44 rounded-lg shadow-xl bg-gradient-to-br from-[#e8a98c] to-[#c47a5c]" />
-          <div className="absolute left-24 sm:left-28 bottom-0 w-16 sm:w-20 h-48 sm:h-56 rounded-t-[2rem] rounded-b-lg shadow-xl bg-gradient-to-b from-white/90 to-lavender-light">
+          <div className="absolute left-0 bottom-0 w-32 sm:w-36 h-40 sm:h-44 rounded-lg shadow-xl bg-linear-to-br from-[#e8a98c] to-[#c47a5c]" />
+          <div className="absolute left-24 sm:left-28 bottom-0 w-16 sm:w-20 h-48 sm:h-56 rounded-t-[2rem] rounded-b-lg shadow-xl bg-linear-to-b from-white/90 to-lavender-light">
             <div className="w-6 h-5 mx-auto -translate-y-1.5 rounded-sm bg-charcoal/70" />
           </div>
         </div>

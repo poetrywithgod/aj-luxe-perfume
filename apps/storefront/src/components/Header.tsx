@@ -1,5 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { Search, ShoppingBag, User, LogOut, ChevronDown } from "lucide-react";
+import { useCart } from "@/lib/cart-context";
+import { formatNaira } from "@/lib/format";
 
 const categories = [
   { label: "Perfumes", href: "/shop/perfumes" },
@@ -21,6 +25,7 @@ const announcements = [
 export function Header() {
   // Duplicated once so the ticker can loop seamlessly at -50% translate.
   const ticker = [...announcements, ...announcements];
+  const { count, subtotal } = useCart();
 
   return (
     <header className="sticky top-0 z-50 bg-cream">
@@ -70,9 +75,11 @@ export function Header() {
             >
               <span className="relative">
                 <ShoppingBag size={20} strokeWidth={1.75} />
-                <span className="absolute -top-1.5 -right-1.5 bg-magenta text-white text-[10px] leading-none rounded-full w-4 h-4 flex items-center justify-center">
-                  0
-                </span>
+                {count > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-magenta text-white text-[10px] leading-none rounded-full w-4 h-4 flex items-center justify-center">
+                    {count}
+                  </span>
+                )}
               </span>
               <span className="hidden sm:block">My Cart</span>
             </Link>
@@ -112,7 +119,7 @@ export function Header() {
           </ul>
           <span className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-aubergine shrink-0 ml-4">
             <ShoppingBag size={16} strokeWidth={1.75} />
-            NGN 0
+            {formatNaira(subtotal)}
           </span>
         </div>
       </div>

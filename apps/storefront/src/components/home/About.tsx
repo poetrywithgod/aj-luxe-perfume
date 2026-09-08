@@ -5,9 +5,9 @@ export function About() {
     <section className="bg-aubergine">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-16 grid md:grid-cols-2 gap-12 items-center">
         <div className="relative aspect-[4/5] max-w-sm mx-auto w-full order-2 md:order-1">
-          <div className="absolute inset-0 rounded-[2.5rem] bg-gradient-to-br from-magenta/25 via-lavender/20 to-transparent" />
+          <div className="absolute inset-0 rounded-[2.5rem] bg-linear-to-br from-magenta/25 via-lavender/20 to-transparent" />
           <div className="absolute inset-8 flex items-center justify-center">
-            <div className="w-20 h-32 rounded-t-full rounded-b-lg bg-gradient-to-b from-cream/90 to-cream/50" />
+            <div className="w-20 h-32 rounded-t-full rounded-b-lg bg-linear-to-b from-cream/90 to-cream/50" />
           </div>
         </div>
 

@@ -22,7 +22,7 @@ const item: Variants = {
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-[#7a3568] via-aubergine-light to-aubergine">
+    <section className="relative overflow-hidden bg-linear-to-b from-[#7a3568] via-aubergine-light to-aubergine">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-16 sm:py-24 grid md:grid-cols-2 gap-12 items-center">
         <motion.div
           variants={container}

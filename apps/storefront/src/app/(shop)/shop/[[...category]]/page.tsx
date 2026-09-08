@@ -295,11 +295,13 @@ export default async function ShopPage({ params, searchParams }: PageProps) {
                 return (
                   <ProductCard
                     key={p.id}
+                    id={p.id}
                     slug={p.slug}
                     name={p.name}
                     brandName={p.brand?.name}
                     price={p.price.toNumber()}
                     image={p.images[0]}
+                    volumeMl={p.volumeMl}
                     rating={avg}
                     reviewCount={ratings.length}
                   />

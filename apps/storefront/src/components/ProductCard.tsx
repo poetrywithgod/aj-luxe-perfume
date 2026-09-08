@@ -1,34 +1,37 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Star, Minus, Plus } from "lucide-react";
 import { formatNaira } from "@/lib/format";
+import { useCart } from "@/lib/cart-context";
 
 type ProductCardProps = {
+  id: string;
   slug: string;
   name: string;
   brandName?: string;
   price: number;
   image?: string;
+  volumeMl?: number;
   rating?: number;
   reviewCount?: number;
 };
 
 export function ProductCard({
+  id,
   slug,
   name,
   brandName,
   price,
   image,
+  volumeMl,
   rating = 0,
   reviewCount = 0,
 }: ProductCardProps) {
-  // Local, per-card quantity state only — not yet wired to a real cart
-  // (no cart context/API exists yet). This just mirrors the add-to-cart
-  // → quantity-stepper interaction from the reference design.
-  const [qty, setQty] = useState(0);
+  const { items, addItem, setQty } = useCart();
+  const cartItem = items.find((i) => i.productId === id);
+  const qty = cartItem?.qty ?? 0;
 
   return (
     <motion.div
@@ -48,7 +51,7 @@ export function ProductCard({
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <div className="w-10 h-16 rounded-t-full rounded-b bg-gradient-to-b from-white to-lavender/60" />
+              <div className="w-10 h-16 rounded-t-full rounded-b bg-linear-to-b from-white to-lavender/60" />
             </div>
           )}
         </div>
@@ -88,7 +91,7 @@ export function ProductCard({
             <button
               type="button"
               aria-label="Decrease quantity"
-              onClick={() => setQty((q) => Math.max(0, q - 1))}
+              onClick={() => setQty(id, qty - 1)}
               className="w-10 h-10 flex items-center justify-center text-charcoal hover:text-aubergine transition-colors"
             >
               <Minus size={16} />
@@ -97,7 +100,7 @@ export function ProductCard({
             <button
               type="button"
               aria-label="Increase quantity"
-              onClick={() => setQty((q) => q + 1)}
+              onClick={() => setQty(id, qty + 1)}
               className="w-10 h-10 flex items-center justify-center text-charcoal hover:text-aubergine transition-colors"
             >
               <Plus size={16} />
@@ -106,7 +109,9 @@ export function ProductCard({
         ) : (
           <button
             type="button"
-            onClick={() => setQty(1)}
+            onClick={() =>
+              addItem({ productId: id, slug, name, image, price, volumeMl })
+            }
             className="w-full rounded-full bg-aubergine text-cream text-sm font-semibold py-2.5 hover:bg-aubergine-light transition-colors"
           >
             Add to Cart

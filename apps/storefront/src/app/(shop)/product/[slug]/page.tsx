@@ -110,7 +110,7 @@ export default async function ProductPage({ params }: PageProps) {
       </nav>
 
       <div className="grid md:grid-cols-2 gap-12">
-        <div className="rounded-2xl border border-aubergine/10 bg-gradient-to-br from-white to-lavender-light/40 p-8">
+        <div className="rounded-2xl border border-aubergine/10 bg-linear-to-br from-white to-lavender-light/40 p-8">
           <div className="aspect-square rounded-xl overflow-hidden bg-charcoal/5">
             {product.images[0] ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -121,7 +121,7 @@ export default async function ProductPage({ params }: PageProps) {
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <div className="w-24 h-40 rounded-t-full rounded-b bg-gradient-to-b from-white to-lavender/60" />
+                <div className="w-24 h-40 rounded-t-full rounded-b bg-linear-to-b from-white to-lavender/60" />
               </div>
             )}
           </div>
@@ -174,7 +174,14 @@ export default async function ProductPage({ params }: PageProps) {
           )}
 
           <div className="mt-10">
-            <AddToCartControl />
+            <AddToCartControl
+              productId={product.id}
+              slug={product.slug}
+              name={product.name}
+              price={product.price.toNumber()}
+              image={product.images[0]}
+              volumeMl={product.volumeMl}
+            />
           </div>
         </div>
       </div>
@@ -245,11 +252,13 @@ export default async function ProductPage({ params }: PageProps) {
               return (
                 <ProductCard
                   key={p.id}
+                  id={p.id}
                   slug={p.slug}
                   name={p.name}
                   brandName={p.brand?.name}
                   price={p.price.toNumber()}
                   image={p.images[0]}
+                  volumeMl={p.volumeMl}
                   rating={relAvg}
                   reviewCount={relRatings.length}
                 />
