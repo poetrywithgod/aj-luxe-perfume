@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   CreditCard,
@@ -11,6 +12,7 @@ import {
   Mail,
   ArrowRight,
   ChevronDown,
+  Lock,
 } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { formatNaira } from "@/lib/format";
@@ -18,7 +20,14 @@ import { CheckoutStepper } from "@/components/checkout/CheckoutStepper";
 
 type Method = "card" | "bank-transfer";
 
+const CARD_FORM_ID = "card-details-form";
+
+function inputClass() {
+  return "w-full rounded-lg border border-aubergine/20 bg-white px-4 py-3 text-base outline-none focus:border-aubergine focus:ring-2 focus:ring-aubergine/10 transition placeholder:text-[#9CA3AF]";
+}
+
 export default function PaymentMethodPage() {
+  const router = useRouter();
   const { items, subtotal } = useCart();
   const [method, setMethod] = useState<Method>("bank-transfer");
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -27,6 +36,15 @@ export default function PaymentMethodPage() {
   // rate calculation exists yet.
   const shipping = items.length > 0 ? 500 : 0;
   const total = subtotal + shipping;
+
+  function handleCardSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    // No payment gateway wired up yet — real card processing would go
+    // through Paystack's tokenized card charge here, server-side. Never
+    // handle raw card numbers/CVVs directly in production without PCI
+    // compliance in place.
+    router.push("/checkout/confirmation");
+  }
 
   return (
     <div className="mx-auto max-w-4xl px-4 sm:px-6 py-12">
@@ -176,31 +194,106 @@ export default function PaymentMethodPage() {
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-aubergine/10 shadow-sm p-6 sm:p-8 mb-8">
+          <h2 className="font-display text-xl text-aubergine mb-6">
+            Card Details
+          </h2>
+
           {/*
-            No card-payment field layout was specified yet — kept
-            deliberately minimal rather than inventing a card-number/CVV
-            form that might not match a future design.
+            Card fields submit through this form (id referenced by the
+            "Complete Order" button down in the shared action bar via its
+            `form` attribute) — no gateway wired up yet, see handleCardSubmit.
           */}
-          <p className="text-sm text-charcoal-soft mb-6">
-            You&apos;ll securely enter your card details on the next step.
-          </p>
-          <Link
-            href="/checkout/confirmation"
-            className="flex items-center justify-center gap-2 rounded-lg bg-aubergine text-cream text-base font-medium py-4 hover:bg-aubergine-light transition-colors"
-          >
-            Click Here to Continue
-            <ArrowRight size={16} />
-          </Link>
+          <form id={CARD_FORM_ID} onSubmit={handleCardSubmit} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-charcoal mb-2">
+                Cardholder Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                required
+                name="cardholderName"
+                placeholder="John Doe"
+                autoComplete="cc-name"
+                className={inputClass()}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-charcoal mb-2">
+                Card Number <span className="text-red-500">*</span>
+              </label>
+              <input
+                required
+                name="cardNumber"
+                inputMode="numeric"
+                placeholder="0000 0000 0000 0000"
+                autoComplete="cc-number"
+                className={`${inputClass()} font-mono tracking-wider`}
+              />
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-charcoal mb-2">
+                  Expiry Date <span className="text-red-500">*</span>
+                </label>
+                <input
+                  required
+                  name="expiry"
+                  placeholder="MM/YY"
+                  autoComplete="cc-exp"
+                  className={`${inputClass()} font-mono`}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-charcoal mb-2">
+                  CVV <span className="text-red-500">*</span>
+                </label>
+                <input
+                  required
+                  name="cvv"
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={4}
+                  placeholder="•••"
+                  autoComplete="cc-csc"
+                  className={`${inputClass()} font-mono`}
+                />
+              </div>
+            </div>
+
+            <label className="flex items-center gap-3 text-sm text-charcoal-soft">
+              <input
+                type="checkbox"
+                name="saveCard"
+                className="w-4 h-4 rounded border-gold accent-aubergine"
+              />
+              Save card for future purchases
+            </label>
+          </form>
+
+          <div className="flex items-center justify-center gap-2 border-t border-aubergine/10 mt-6 pt-4 text-xs text-charcoal-soft">
+            <Lock size={14} className="text-gold" />
+            Your payment is encrypted and secure
+          </div>
         </div>
       )}
 
-      <div className="border-t border-aubergine/10 pt-6 mb-6">
+      <div className="flex items-center justify-between border-t border-aubergine/10 pt-6 mb-6">
         <Link
           href="/checkout"
-          className="inline-block rounded-lg border border-aubergine px-8 py-3.5 text-base font-medium text-aubergine hover:bg-lavender-light/50 transition-colors"
+          className="rounded-lg border border-aubergine px-8 py-3.5 text-base font-medium text-aubergine hover:bg-lavender-light/50 transition-colors"
         >
           Back to Shipping
         </Link>
+        {method === "card" && (
+          <button
+            type="submit"
+            form={CARD_FORM_ID}
+            className="rounded-lg bg-aubergine text-cream text-base font-medium px-8 py-3.5 shadow-lg shadow-aubergine/20 hover:bg-aubergine-light transition-colors"
+          >
+            Complete Order
+          </button>
+        )}
       </div>
 
       <div className="bg-white rounded-xl border border-aubergine/10 shadow-sm overflow-hidden">
