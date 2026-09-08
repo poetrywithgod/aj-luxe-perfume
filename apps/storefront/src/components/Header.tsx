@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Search, ShoppingBag, User, LogOut, ChevronDown } from "lucide-react";
-import { Logo } from "./Logo";
 
 const categories = [
   { label: "Perfumes", href: "/shop/perfumes" },
@@ -13,15 +12,22 @@ const announcements = [
   "Discount on all First Time Order",
   "Free Delivery on all orders above NGN 100,000 within PH",
   "We are open Mon – Sat, 8am – 6pm",
+  // Handle per the latest Figma spec: "ajscent_6" — the source label was
+  // still clipped there, so double check the live TikTok profile in case
+  // the full handle continues past this.
+  "Follow us on TikTok: ajscent_6",
 ];
 
 export function Header() {
+  // Duplicated once so the ticker can loop seamlessly at -50% translate.
+  const ticker = [...announcements, ...announcements];
+
   return (
     <header className="sticky top-0 z-50 bg-cream">
-      {/* Announcement bar */}
-      <div className="bg-aubergine text-cream text-xs sm:text-sm overflow-hidden">
-        <div className="flex items-center gap-8 whitespace-nowrap px-4 py-2 overflow-x-auto scrollbar-none">
-          {announcements.map((line, i) => (
+      {/* Announcement ticker */}
+      <div className="bg-plum text-cream text-xs sm:text-sm h-8 flex items-center overflow-hidden">
+        <div className="ticker-track flex items-center gap-8 whitespace-nowrap px-4">
+          {ticker.map((line, i) => (
             <span key={i} className="flex items-center gap-8 shrink-0">
               {line}
               <span className="text-magenta-light" aria-hidden="true">
@@ -35,10 +41,14 @@ export function Header() {
       {/* Main header: logo, search, icons */}
       <div className="border-b border-charcoal/10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4 flex items-center gap-6">
-          <Logo />
-          <span className="hidden lg:block text-[11px] tracking-wide text-charcoal-soft -ml-3">
-            Your Fragrance Journey is Our Priority
-          </span>
+          <Link href="/" className="shrink-0">
+            <span className="font-display text-2xl sm:text-3xl font-semibold text-aubergine leading-none block">
+              AJ Luxe Perfume
+            </span>
+            <span className="text-[11px] tracking-wide text-charcoal-soft block mt-0.5">
+              Your Fragrance Journey is Our Priority
+            </span>
+          </Link>
 
           <div className="hidden md:flex flex-1 max-w-md ml-auto relative">
             <Search
@@ -100,7 +110,8 @@ export function Header() {
               </li>
             ))}
           </ul>
-          <span className="hidden sm:block text-sm font-medium text-aubergine shrink-0 ml-4">
+          <span className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-aubergine shrink-0 ml-4">
+            <ShoppingBag size={16} strokeWidth={1.75} />
             NGN 0
           </span>
         </div>

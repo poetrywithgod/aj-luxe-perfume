@@ -1,16 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ChevronDown } from "lucide-react";
 import { prisma } from "db";
 import { ProductCard } from "@/components/ProductCard";
-import { Filters } from "@/components/shop/Filters";
+import { Filters, type FacetOption } from "@/components/shop/Filters";
 import { Pagination } from "@/components/shop/Pagination";
 
 const PAGE_SIZE = 12;
 const GENDERS = ["Men", "Women", "Children", "Unisex"] as const;
 
+const PRICE_BUCKETS = [
+  { key: "under-30k", label: "Under NGN 30,000", min: 0, max: 30000 },
+  { key: "30k-50k", label: "NGN 30,000 – 50,000", min: 30000, max: 50000 },
+  { key: "above-50k", label: "Above NGN 50,000", min: 50000, max: undefined },
+] as const;
+
 const SORT_OPTIONS = {
-  newest: { label: "Newest", orderBy: { createdAt: "desc" as const } },
+  newest: { label: "Featured", orderBy: { createdAt: "desc" as const } },
   "price-asc": { label: "Price: Low to High", orderBy: { price: "asc" as const } },
   "price-desc": { label: "Price: High to Low", orderBy: { price: "desc" as const } },
 } as const;
@@ -21,17 +28,35 @@ type PageProps = {
   params: Promise<{ category?: string[] }>;
   searchParams: Promise<{
     gender?: string | string[];
+    scent?: string | string[];
+    price?: string | string[];
+    brand?: string | string[];
     sort?: string;
     page?: string;
   }>;
 };
 
-function normalizeGenders(value: string | string[] | undefined): string[] {
+function normalizeList<T extends string>(
+  value: string | string[] | undefined,
+  allowed?: readonly T[],
+): T[] {
   if (!value) return [];
   const arr = Array.isArray(value) ? value : [value];
-  return arr.filter((g): g is (typeof GENDERS)[number] =>
-    (GENDERS as readonly string[]).includes(g),
-  );
+  if (!allowed) return arr as T[];
+  return arr.filter((v): v is T => (allowed as readonly string[]).includes(v));
+}
+
+function priceBucketWhere(keys: string[]) {
+  const buckets = PRICE_BUCKETS.filter((b) => keys.includes(b.key));
+  if (buckets.length === 0) return undefined;
+  return {
+    OR: buckets.map((b) => ({
+      price: {
+        gte: b.min,
+        ...(b.max !== undefined && { lt: b.max }),
+      },
+    })),
+  };
 }
 
 async function getCategory(slug: string | undefined) {
@@ -66,19 +91,39 @@ export default async function ShopPage({ params, searchParams }: PageProps) {
   const categorySlug = categorySegments?.[0];
   const category = await getCategory(categorySlug);
 
-  const activeGenders = normalizeGenders(sp.gender);
+  const activeGenders = normalizeList(sp.gender, GENDERS);
+  const activeScents = normalizeList(sp.scent);
+  const activePriceBuckets = normalizeList(
+    sp.price,
+    PRICE_BUCKETS.map((b) => b.key),
+  );
+  const activeBrands = normalizeList(sp.brand);
   const sortKey: SortKey =
     sp.sort && sp.sort in SORT_OPTIONS ? (sp.sort as SortKey) : "newest";
   const currentPage = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
 
+  const categoryWhere = category ? { categoryId: category.id } : {};
+  const priceWhere = priceBucketWhere(activePriceBuckets);
+
   const where = {
-    ...(category && { categoryId: category.id }),
+    ...categoryWhere,
     ...(activeGenders.length > 0 && { gender: { in: activeGenders } }),
+    ...(activeScents.length > 0 && { scentProfile: { in: activeScents } }),
+    ...(activeBrands.length > 0 && { brand: { slug: { in: activeBrands } } }),
+    ...(priceWhere && priceWhere),
   };
 
   const basePath = category ? `/shop/${category.slug}` : "/shop";
 
-  const [products, totalCount, genderCounts] = await Promise.all([
+  const [
+    products,
+    totalCount,
+    genderCounts,
+    scentGroups,
+    brandGroups,
+    brandList,
+    priceCounts,
+  ] = await Promise.all([
     prisma.product.findMany({
       where,
       include: {
@@ -92,10 +137,26 @@ export default async function ShopPage({ params, searchParams }: PageProps) {
     prisma.product.count({ where }),
     Promise.all(
       GENDERS.map((gender) =>
+        prisma.product.count({ where: { ...categoryWhere, gender } }),
+      ),
+    ),
+    prisma.product.groupBy({
+      by: ["scentProfile"],
+      where: { ...categoryWhere, scentProfile: { not: null } },
+      _count: { _all: true },
+    }),
+    prisma.product.groupBy({
+      by: ["brandId"],
+      where: { ...categoryWhere, brandId: { not: null } },
+      _count: { _all: true },
+    }),
+    prisma.brand.findMany({ orderBy: { name: "asc" } }),
+    Promise.all(
+      PRICE_BUCKETS.map((b) =>
         prisma.product.count({
           where: {
-            ...(category && { categoryId: category.id }),
-            gender,
+            ...categoryWhere,
+            price: { gte: b.min, ...(b.max !== undefined && { lt: b.max }) },
           },
         }),
       ),
@@ -105,6 +166,31 @@ export default async function ShopPage({ params, searchParams }: PageProps) {
   const counts = Object.fromEntries(
     GENDERS.map((gender, i) => [gender, genderCounts[i]]),
   );
+
+  const scentOptions: FacetOption[] = scentGroups
+    .filter((g) => g.scentProfile)
+    .map((g) => ({
+      value: g.scentProfile as string,
+      label: g.scentProfile as string,
+      count: g._count._all,
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+
+  const brandOptions: FacetOption[] = brandGroups
+    .map((g) => {
+      const brand = brandList.find((b) => b.id === g.brandId);
+      return brand
+        ? { value: brand.slug, label: brand.name, count: g._count._all }
+        : null;
+    })
+    .filter((opt): opt is FacetOption => opt !== null)
+    .sort((a, b) => a.label.localeCompare(b.label));
+
+  const priceOptions: FacetOption[] = PRICE_BUCKETS.map((b, i) => ({
+    value: b.key,
+    label: b.label,
+    count: priceCounts[i],
+  }));
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
@@ -138,37 +224,52 @@ export default async function ShopPage({ params, searchParams }: PageProps) {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-charcoal-soft">Sort by:</span>
-          {(Object.keys(SORT_OPTIONS) as SortKey[]).map((key) => {
-            const query = new URLSearchParams();
-            activeGenders.forEach((g) => query.append("gender", g));
-            if (key !== "newest") query.set("sort", key);
-            const href = query.toString()
-              ? `${basePath}?${query.toString()}`
-              : basePath;
-            return (
-              <Link
-                key={key}
-                href={href}
-                className={`px-3 py-1.5 rounded-full transition-colors ${
-                  sortKey === key
-                    ? "bg-aubergine text-cream"
-                    : "text-charcoal hover:bg-lavender-light"
-                }`}
-              >
-                {SORT_OPTIONS[key].label}
-              </Link>
-            );
-          })}
-        </div>
+        <details className="relative text-sm">
+          <summary className="flex items-center gap-2 cursor-pointer select-none list-none text-charcoal">
+            <span className="text-charcoal-soft">Sort by:</span>
+            <span className="font-medium">{SORT_OPTIONS[sortKey].label}</span>
+            <ChevronDown size={14} />
+          </summary>
+          <div className="absolute right-0 z-10 mt-2 w-52 rounded-xl border border-charcoal/10 bg-white py-2 shadow-lg">
+            {(Object.keys(SORT_OPTIONS) as SortKey[]).map((key) => {
+              const query = new URLSearchParams();
+              activeGenders.forEach((g) => query.append("gender", g));
+              activeScents.forEach((s) => query.append("scent", s));
+              activePriceBuckets.forEach((p) => query.append("price", p));
+              activeBrands.forEach((b) => query.append("brand", b));
+              if (key !== "newest") query.set("sort", key);
+              const href = query.toString()
+                ? `${basePath}?${query.toString()}`
+                : basePath;
+              return (
+                <Link
+                  key={key}
+                  href={href}
+                  className={`block px-4 py-2 transition-colors ${
+                    sortKey === key
+                      ? "text-aubergine font-medium"
+                      : "text-charcoal hover:bg-lavender-light"
+                  }`}
+                >
+                  {SORT_OPTIONS[key].label}
+                </Link>
+              );
+            })}
+          </div>
+        </details>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8">
         <Filters
           basePath={basePath}
           activeGenders={activeGenders}
-          counts={counts}
+          genderCounts={counts}
+          activeScents={activeScents}
+          scentOptions={scentOptions}
+          activePriceBuckets={activePriceBuckets}
+          priceOptions={priceOptions}
+          activeBrands={activeBrands}
+          brandOptions={brandOptions}
         />
 
         <div className="flex-1">

@@ -8,6 +8,7 @@
   --color-magenta: #c13fa0;
   --color-magenta-light: #e88fc4;
   --color-magenta-deep: #a32aae;
+  --color-plum: #3d1a4a;
   --color-cream: #f8f6f2;
   --color-gold: #e8b84b;
   --color-charcoal: #2a2230;
@@ -22,6 +23,7 @@
   --color-magenta: var(--color-magenta);
   --color-magenta-light: var(--color-magenta-light);
   --color-magenta-deep: var(--color-magenta-deep);
+  --color-plum: var(--color-plum);
   --color-cream: var(--color-cream);
   --color-gold: var(--color-gold);
   --color-charcoal: var(--color-charcoal);
@@ -74,4 +76,18 @@ body {
 }
 .marquee-card:hover {
   filter: grayscale(1);
+}
+
+@keyframes ticker-x {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.ticker-track {
+  width: max-content;
+  animation: ticker-x 26s linear infinite;
 }
