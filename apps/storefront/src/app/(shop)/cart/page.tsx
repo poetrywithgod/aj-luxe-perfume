@@ -1,54 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Minus, Plus, Trash2, Check } from "lucide-react";
+import { Minus, Plus, Trash2 } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { formatNaira } from "@/lib/format";
-
-const STEPS = ["Cart", "Shipping", "Payment", "Confirmation"];
-
-function CheckoutStepper({ currentStep }: { currentStep: number }) {
-  return (
-    <div className="relative flex items-center justify-between max-w-2xl mx-auto mb-16">
-      <div className="absolute left-4 right-4 top-4 h-px bg-aubergine/10" />
-      <div
-        className="absolute left-4 top-4 h-px bg-magenta-deep transition-all"
-        style={{
-          width: `calc(${(currentStep / (STEPS.length - 1)) * 100}% - ${
-            (currentStep / (STEPS.length - 1)) * 32
-          }px)`,
-        }}
-      />
-      {STEPS.map((label, i) => {
-        const done = i <= currentStep;
-        const active = i === currentStep;
-        return (
-          <div
-            key={label}
-            className="relative z-10 flex flex-col items-center gap-2"
-          >
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-semibold border-[1.6px] ${
-                done
-                  ? "bg-magenta-deep border-magenta-deep text-white"
-                  : "bg-[#F7F8F7] border-aubergine/20 text-aubergine/30"
-              }`}
-            >
-              {done ? <Check size={16} /> : i + 1}
-            </div>
-            <span
-              className={`text-[10px] font-medium tracking-[0.5px] ${
-                active ? "text-magenta-deep" : "text-[#6B7280]"
-              }`}
-            >
-              {label}
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
+import { CheckoutStepper } from "@/components/checkout/CheckoutStepper";
 
 const POLICY_NOTES = [
   "Delivery within Port Harcourt (PH): 24-48 hours",
