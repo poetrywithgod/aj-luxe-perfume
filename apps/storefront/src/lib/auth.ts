@@ -77,6 +77,10 @@ export type SessionCustomer = {
   email: string;
   phone: string | null;
   createdAt: Date;
+  // Set while a change-of-email confirmation is pending (see
+  // src/lib/email.ts + /account/verify-email) — the real `email` above
+  // stays the old, still-valid address until this is confirmed.
+  pendingEmail: string | null;
 };
 
 export async function getCurrentCustomer(): Promise<SessionCustomer | null> {
@@ -95,5 +99,26 @@ export async function getCurrentCustomer(): Promise<SessionCustomer | null> {
     email: customer.email,
     phone: customer.phone,
     createdAt: customer.createdAt,
+    pendingEmail: customer.pendingEmail,
   };
+}
+
+// Lighter lookup for places (like the headers) that only need a name to
+// display and shouldn't pay for/depend on the full account fetch above.
+export type SessionIdentity = {
+  firstName: string;
+  lastName: string;
+};
+
+export async function getCurrentIdentity(): Promise<SessionIdentity | null> {
+  const customerId = await getSessionCustomerId();
+  if (!customerId) return null;
+
+  const customer = await withDbRetry(() =>
+    prisma.customer.findUnique({
+      where: { id: customerId },
+      select: { firstName: true, lastName: true },
+    }),
+  );
+  return customer;
 }

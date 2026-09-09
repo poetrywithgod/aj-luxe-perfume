@@ -45,6 +45,14 @@ model Customer {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // Email re-verification: when a customer changes their email in
+  // settings, the real `email` column is left untouched and these three
+  // fields hold the pending change until the confirmation link is
+  // clicked. See src/lib/email.ts and /account/verify-email.
+  pendingEmail       String?
+  emailVerifyToken   String?   @unique
+  emailVerifyExpires DateTime?
+
   orders        Order[]
   reviews       Review[]
   conversations Conversation[]

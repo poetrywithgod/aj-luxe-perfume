@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Cormorant_Garamond, Manrope } from "next/font/google";
 import { Footer } from "@/components/Footer";
 import { CartProvider } from "@/lib/cart-context";
+import { CheckoutProvider } from "@/lib/checkout-context";
 import "./globals.css";
 
 const cormorant = Cormorant_Garamond({
@@ -54,8 +55,10 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <CartProvider>
-          <main className="flex-1 flex flex-col">{children}</main>
-          <Footer />
+          <CheckoutProvider>
+            <main className="flex-1 flex flex-col">{children}</main>
+            <Footer />
+          </CheckoutProvider>
         </CartProvider>
       </body>
     </html>

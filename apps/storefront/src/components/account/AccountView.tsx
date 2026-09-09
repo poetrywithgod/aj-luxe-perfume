@@ -45,7 +45,7 @@ export function AccountView({
   const [tab, setTab] = useState<Tab>("profile");
   const [profile, setProfile] = useState(customer);
   const [saveState, setSaveState] = useState<
-    "idle" | "saving" | "saved" | "error"
+    "idle" | "saving" | "saved" | "saved-pending-email" | "error"
   >("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -75,9 +75,23 @@ export function AccountView({
     }
 
     const updated = await res.json();
-    setProfile((p) => ({ ...p, ...updated }));
-    setSaveState("saved");
-    setTimeout(() => setSaveState("idle"), 2500);
+    // A changed email doesn't land in `email` yet — it sits in
+    // `pendingEmail` until the confirmation link is clicked (see
+    // /account/verify-email), so the visible email field should keep
+    // showing the still-current address, not the one just submitted.
+    setProfile((p) => ({
+      ...p,
+      firstName: updated.firstName,
+      lastName: updated.lastName,
+      phone: updated.phone,
+      email: updated.email,
+      pendingEmail: updated.pendingEmail,
+    }));
+    setSaveState(updated.emailChangePending ? "saved-pending-email" : "saved");
+    setTimeout(
+      () => setSaveState("idle"),
+      updated.emailChangePending ? 6000 : 2500,
+    );
   }
 
   async function handleLogout() {
@@ -190,11 +204,12 @@ export function AccountView({
                 type="email"
                 className={inputClass()}
               />
-              {/*
-                No re-verification flow for a changed email exists yet
-                (no confirmation email sent) — changing it here takes
-                effect immediately.
-              */}
+              {profile.pendingEmail && (
+                <p className="text-xs text-magenta-deep bg-magenta-light/10 rounded-lg px-3 py-2 mt-2">
+                  Confirmation sent to {profile.pendingEmail} — your login
+                  email stays {profile.email} until you confirm it.
+                </p>
+              )}
             </div>
 
             <div>
@@ -220,6 +235,11 @@ export function AccountView({
               </button>
               {saveState === "saved" && (
                 <span className="text-sm text-magenta-deep">Saved.</span>
+              )}
+              {saveState === "saved-pending-email" && (
+                <span className="text-sm text-magenta-deep">
+                  Saved — check your new email to confirm the change.
+                </span>
               )}
             </div>
           </form>

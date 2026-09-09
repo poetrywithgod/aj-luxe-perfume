@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -15,6 +15,7 @@ import {
   Lock,
 } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
+import { useCheckout } from "@/lib/checkout-context";
 import { formatNaira } from "@/lib/format";
 import { CheckoutStepper } from "@/components/checkout/CheckoutStepper";
 
@@ -28,22 +29,79 @@ function inputClass() {
 
 export default function PaymentMethodPage() {
   const router = useRouter();
-  const { items, subtotal } = useCart();
+  const { items, subtotal, clear: clearCart } = useCart();
+  const { shipping, hydrated, clearShipping } = useCheckout();
   const [method, setMethod] = useState<Method>("bank-transfer");
   const [summaryOpen, setSummaryOpen] = useState(false);
+  const [placingOrder, setPlacingOrder] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
 
   // Same flat placeholder used on the checkout (shipping) page — no real
   // rate calculation exists yet.
-  const shipping = items.length > 0 ? 500 : 0;
-  const total = subtotal + shipping;
+  const shippingFee = items.length > 0 ? 500 : 0;
+  const total = subtotal + shippingFee;
+
+  // Shipping details live in the previous checkout step and are only
+  // carried over via CheckoutProvider — if they're missing (direct nav,
+  // a stale bookmark, sessionStorage cleared) there's nothing valid to
+  // submit an order with, so send the person back to fill them in.
+  useEffect(() => {
+    if (hydrated && !shipping) {
+      router.replace("/checkout");
+    }
+  }, [hydrated, shipping, router]);
+
+  async function placeOrder(paymentMethod: "CARD" | "BANK_TRANSFER") {
+    if (!shipping || items.length === 0) return;
+    setPlacingOrder(true);
+    setOrderError(null);
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: items.map((item) => ({
+            productId: item.productId,
+            qty: item.qty,
+          })),
+          shipping,
+          paymentMethod,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setOrderError(data?.error ?? "Something went wrong placing your order.");
+        setPlacingOrder(false);
+        return;
+      }
+      // Order record now exists for real — safe to clear both the cart
+      // and the in-progress shipping details before moving on.
+      clearShipping();
+      clearCart();
+      router.push(`/checkout/confirmation?order=${data.id}`);
+    } catch {
+      setOrderError("Couldn't reach the server. Please try again.");
+      setPlacingOrder(false);
+    }
+  }
 
   function handleCardSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     // No payment gateway wired up yet — real card processing would go
-    // through Paystack's tokenized card charge here, server-side. Never
-    // handle raw card numbers/CVVs directly in production without PCI
-    // compliance in place.
-    router.push("/checkout/confirmation");
+    // through Paystack's tokenized card charge here, server-side, before
+    // the order should be marked paid. Never handle raw card
+    // numbers/CVVs directly in production without PCI compliance in
+    // place. In the meantime this still creates a real (PENDING) Order
+    // record so the rest of the loop — Order History, admin Orders — has
+    // something real to work with.
+    void placeOrder("CARD");
+  }
+
+  function handleBankTransferContinue() {
+    // Same placeholder situation as the card path above: no real
+    // Paystack transaction is created/redirected to yet, but a real
+    // Order record is.
+    void placeOrder("BANK_TRANSFER");
   }
 
   return (
@@ -180,17 +238,26 @@ export default function PaymentMethodPage() {
           </ul>
 
           {/*
-            No Paystack integration exists yet — this simply advances to a
-            placeholder route. Real integration needs a server route to
-            create the Paystack transaction before redirecting.
+            No Paystack integration exists yet — this creates a real
+            (PENDING) Order record via /api/orders and moves on to the
+            confirmation page, but doesn't actually take a payment. Real
+            integration needs a server route to create the Paystack
+            transaction and only mark the order paid on its webhook.
           */}
-          <Link
-            href="/checkout/confirmation"
-            className="flex items-center justify-center gap-2 rounded-lg bg-aubergine text-cream text-base font-medium py-4 hover:bg-aubergine-light transition-colors"
+          <button
+            type="button"
+            onClick={handleBankTransferContinue}
+            disabled={placingOrder || items.length === 0}
+            className="w-full flex items-center justify-center gap-2 rounded-lg bg-aubergine text-cream text-base font-medium py-4 hover:bg-aubergine-light transition-colors disabled:opacity-60"
           >
-            Click Here to Continue
-            <ArrowRight size={16} />
-          </Link>
+            {placingOrder ? "Placing Order..." : "Click Here to Continue"}
+            {!placingOrder && <ArrowRight size={16} />}
+          </button>
+          {orderError && (
+            <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-4 py-3 mt-4">
+              {orderError}
+            </p>
+          )}
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-aubergine/10 shadow-sm p-6 sm:p-8 mb-8">
@@ -278,6 +345,12 @@ export default function PaymentMethodPage() {
         </div>
       )}
 
+      {method === "card" && orderError && (
+        <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-6">
+          {orderError}
+        </p>
+      )}
+
       <div className="flex items-center justify-between border-t border-aubergine/10 pt-6 mb-6">
         <Link
           href="/checkout"
@@ -289,9 +362,10 @@ export default function PaymentMethodPage() {
           <button
             type="submit"
             form={CARD_FORM_ID}
-            className="rounded-lg bg-aubergine text-cream text-base font-medium px-8 py-3.5 shadow-lg shadow-aubergine/20 hover:bg-aubergine-light transition-colors"
+            disabled={placingOrder}
+            className="rounded-lg bg-aubergine text-cream text-base font-medium px-8 py-3.5 shadow-lg shadow-aubergine/20 hover:bg-aubergine-light transition-colors disabled:opacity-60"
           >
-            Complete Order
+            {placingOrder ? "Placing Order..." : "Complete Order"}
           </button>
         )}
       </div>
@@ -339,7 +413,7 @@ export default function PaymentMethodPage() {
             ))}
             <div className="flex items-center justify-between text-sm text-charcoal-soft pt-2 border-t border-aubergine/10">
               <span>Shipping</span>
-              <span>{formatNaira(shipping)}</span>
+              <span>{formatNaira(shippingFee)}</span>
             </div>
           </div>
         )}

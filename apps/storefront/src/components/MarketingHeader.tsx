@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Search, Menu, X } from "lucide-react";
+import { Search, Menu, X, User } from "lucide-react";
 import { Logo } from "./Logo";
+import type { SessionIdentity } from "@/lib/auth";
 
 const links = [
   { label: "Home", href: "/" },
@@ -13,7 +14,11 @@ const links = [
   { label: "Contact Us", href: "/contact" },
 ];
 
-export function MarketingHeader() {
+export function MarketingHeader({
+  identity,
+}: {
+  identity: SessionIdentity | null;
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -45,6 +50,16 @@ export function MarketingHeader() {
             className="w-full rounded-full border border-charcoal/15 bg-white/80 py-2 pl-9 pr-3 text-sm outline-none focus:border-magenta focus:ring-2 focus:ring-magenta/20 transition"
           />
         </div>
+
+        <Link
+          href={identity ? "/account" : "/login"}
+          className="hidden md:flex items-center gap-1.5 text-sm font-medium text-charcoal hover:text-magenta transition-colors shrink-0"
+        >
+          <User size={16} strokeWidth={1.75} />
+          <span className="max-w-[100px] truncate">
+            {identity ? `Hi, ${identity.firstName}` : "Sign In"}
+          </span>
+        </Link>
 
         <button
           type="button"
@@ -82,6 +97,14 @@ export function MarketingHeader() {
                 {link.label}
               </Link>
             ))}
+            <Link
+              href={identity ? "/account" : "/login"}
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-1.5 py-2.5 border-t border-charcoal/5 mt-1 pt-3 hover:text-magenta transition-colors"
+            >
+              <User size={16} strokeWidth={1.75} />
+              {identity ? `Hi, ${identity.firstName}` : "Sign In"}
+            </Link>
           </nav>
         </div>
       )}

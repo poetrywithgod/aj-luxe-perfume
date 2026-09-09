@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Search, ShoppingBag, User, LogOut, ChevronDown } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { formatNaira } from "@/lib/format";
+import type { SessionIdentity } from "@/lib/auth";
 
 const categories = [
   { label: "Perfumes", href: "/shop/perfumes" },
@@ -22,7 +23,7 @@ const announcements = [
   "Follow us on TikTok: ajscent_6",
 ];
 
-export function Header() {
+export function Header({ identity }: { identity: SessionIdentity | null }) {
   // Duplicated once so the ticker can loop seamlessly at -50% translate.
   const ticker = [...announcements, ...announcements];
   const { count, subtotal } = useCart();
@@ -84,11 +85,13 @@ export function Header() {
               <span className="hidden sm:block">My Cart</span>
             </Link>
             <Link
-              href="/account"
+              href={identity ? "/account" : "/login"}
               className="flex flex-col items-center gap-1 text-charcoal hover:text-aubergine transition-colors"
             >
               <User size={20} strokeWidth={1.75} />
-              <span className="hidden sm:block">Profile</span>
+              <span className="hidden sm:block max-w-[72px] truncate">
+                {identity ? identity.firstName : "Profile"}
+              </span>
             </Link>
             <Link
               href="/checkout"

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
+import { useCheckout, type ShippingDetails } from "@/lib/checkout-context";
 import { formatNaira } from "@/lib/format";
 import { CheckoutStepper } from "@/components/checkout/CheckoutStepper";
 
@@ -28,15 +29,33 @@ function inputClass(hasError: boolean) {
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, subtotal } = useCart();
-  const shipping = items.length > 0 ? FLAT_SHIPPING_FEE : 0;
-  const total = subtotal + shipping;
+  const { setShipping } = useCheckout();
+  const shippingFee = items.length > 0 ? FLAT_SHIPPING_FEE : 0;
+  const total = subtotal + shippingFee;
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     // Browser-native `required` validation already blocks submission
     // before this handler runs, so reaching here means the form is valid.
-    // No payment step/backend exists yet — this is where a real
-    // /checkout/payment route (Paystack) would take over.
+    const form = new FormData(e.currentTarget);
+    const details: ShippingDetails = {
+      firstName: String(form.get("firstName") ?? ""),
+      lastName: String(form.get("lastName") ?? ""),
+      email: String(form.get("email") ?? ""),
+      address: String(form.get("address") ?? ""),
+      state: String(form.get("state") ?? ""),
+      city: String(form.get("city") ?? ""),
+      phone: String(form.get("phone") ?? ""),
+      deliveryLocation:
+        form.get("deliveryLocation") === "outside-ph"
+          ? "outside-ph"
+          : "within-ph",
+      note: String(form.get("note") ?? ""),
+    };
+    // Persisted via CheckoutProvider (sessionStorage) so the payment step
+    // — a separate page/navigation — still has these details to submit
+    // the real order with.
+    setShipping(details);
     router.push("/checkout/payment");
   }
 
@@ -234,7 +253,7 @@ export default function CheckoutPage() {
             </div>
             <div className="flex items-center justify-between">
               <span>Shipping</span>
-              <span>{formatNaira(shipping)}</span>
+              <span>{formatNaira(shippingFee)}</span>
             </div>
           </div>
 
