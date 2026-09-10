@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Package, LogOut, Save } from "lucide-react";
 import { formatNaira } from "@/lib/format";
+import { MessageThread } from "./MessageThread";
 import type { SessionCustomer } from "@/lib/auth";
 
 export type OrderSummary = {
@@ -32,7 +33,7 @@ const STATUS_LABEL: Record<string, string> = {
   CANCELLED: "Cancelled",
 };
 
-type Tab = "profile" | "orders";
+type Tab = "profile" | "orders" | "messages";
 
 export function AccountView({
   customer,
@@ -140,6 +141,7 @@ export function AccountView({
           [
             { key: "profile", label: "Profile" },
             { key: "orders", label: "Order History" },
+            { key: "messages", label: "Messages" },
           ] as const
         ).map((t) => (
           <button
@@ -244,7 +246,7 @@ export function AccountView({
             </div>
           </form>
         </div>
-      ) : (
+      ) : tab === "orders" ? (
         <div className="bg-white rounded-2xl border border-aubergine/10 shadow-sm p-6 sm:p-8">
           <h2 className="font-display text-xl text-aubergine mb-6">
             Order History
@@ -296,6 +298,13 @@ export function AccountView({
               ))}
             </div>
           )}
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-aubergine/10 shadow-sm p-6 sm:p-8">
+          <h2 className="font-display text-xl text-aubergine mb-6">
+            Messages
+          </h2>
+          <MessageThread />
         </div>
       )}
     </div>

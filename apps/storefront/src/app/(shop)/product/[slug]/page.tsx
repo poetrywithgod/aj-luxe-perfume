@@ -3,9 +3,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Star } from "lucide-react";
 import { prisma, withDbRetry } from "db";
+import { getCurrentCustomer } from "@/lib/auth";
 import { ProductCard } from "@/components/ProductCard";
 import { AddToCartControl } from "@/components/product/AddToCartControl";
 import { ReviewCarousel } from "@/components/product/ReviewCarousel";
+import { ReviewForm } from "@/components/product/ReviewForm";
 import { formatNaira } from "@/lib/format";
 
 type PageProps = {
@@ -87,6 +89,18 @@ export default async function ProductPage({ params }: PageProps) {
     rating: r.rating,
     comment: r.comment,
   }));
+
+  const customer = await getCurrentCustomer();
+  const myReview = customer
+    ? await withDbRetry(() =>
+        prisma.review.findUnique({
+          where: {
+            productId_customerId: { productId: product.id, customerId: customer.id },
+          },
+          select: { rating: true, comment: true, status: true },
+        }),
+      )
+    : null;
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 py-10">
@@ -198,6 +212,11 @@ export default async function ProductPage({ params }: PageProps) {
           ) : (
             <ReviewCarousel reviews={reviewItems} />
           )}
+          <ReviewForm
+            productId={product.id}
+            isLoggedIn={Boolean(customer)}
+            existingReview={myReview}
+          />
         </div>
 
         <div>

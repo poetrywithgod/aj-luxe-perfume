@@ -187,6 +187,12 @@ model Review {
   customerId String?
   customer   Customer?    @relation(fields: [customerId], references: [id])
 
+  // A customer can only have one review per product — resubmitting isn't
+  // supported yet (they'd need to wait for a REJECTED one to be deleted,
+  // or a future "edit my review" flow). Guarding this at the DB level
+  // too, not just in the API route, since two racing submit clicks could
+  // otherwise both pass an application-level check.
+  @@unique([productId, customerId])
   @@map("reviews")
 }
 
