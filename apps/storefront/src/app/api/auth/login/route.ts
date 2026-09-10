@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma, withDbRetry } from "db";
-import { verifyPassword, createSession } from "@/lib/auth";
+import {
+  verifyPassword,
+  createSession,
+  registerFailedLogin,
+  clearFailedLogins,
+} from "@/lib/auth";
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -29,9 +34,23 @@ export async function POST(request: Request) {
 
   if (!customer) return invalid();
 
-  const valid = await verifyPassword(password, customer.passwordHash);
-  if (!valid) return invalid();
+  if (customer.lockedUntil && customer.lockedUntil > new Date()) {
+    return NextResponse.json(
+      {
+        error:
+          "Too many failed attempts. Please try again in a few minutes, or reset your password.",
+      },
+      { status: 429 },
+    );
+  }
 
+  const valid = await verifyPassword(password, customer.passwordHash);
+  if (!valid) {
+    await registerFailedLogin(customer.id);
+    return invalid();
+  }
+
+  await clearFailedLogins(customer.id);
   await createSession(customer.id);
 
   return NextResponse.json({

@@ -1,33 +1,60 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 function inputClass() {
   return "w-full rounded-xl border border-aubergine/20 bg-white px-4 py-3 text-base outline-none focus:border-aubergine focus:ring-2 focus:ring-aubergine/10 transition";
 }
 
-export default function LoginPage() {
+function ResetPasswordForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token");
+
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  if (!token) {
+    return (
+      <div className="mx-auto max-w-md px-4 sm:px-6 py-16 text-center">
+        <h1 className="font-display text-3xl text-aubergine mb-4">
+          Missing reset link
+        </h1>
+        <p className="text-charcoal-soft mb-8">
+          This page needs a token from a password reset email. Please use
+          the link from that email, or request a new one.
+        </p>
+        <Link
+          href="/forgot-password"
+          className="inline-flex items-center rounded-lg bg-aubergine text-cream text-sm font-medium px-6 py-3 hover:bg-aubergine-light transition-colors"
+        >
+          Request Reset Link
+        </Link>
+      </div>
+    );
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
-    setLoading(true);
 
     const form = new FormData(e.currentTarget);
-    const res = await fetch("/api/auth/login", {
+    const password = String(form.get("password") ?? "");
+    const confirm = String(form.get("confirm") ?? "");
+
+    if (password !== confirm) {
+      setError("Passwords don't match.");
+      return;
+    }
+
+    setLoading(true);
+    const res = await fetch("/api/auth/reset-password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: form.get("email"),
-        password: form.get("password"),
-      }),
+      body: JSON.stringify({ token, password }),
     });
-
     setLoading(false);
 
     if (!res.ok) {
@@ -43,7 +70,7 @@ export default function LoginPage() {
   return (
     <div className="mx-auto max-w-md px-4 sm:px-6 py-16">
       <h1 className="font-display text-4xl text-aubergine text-center mb-8">
-        Log In
+        Reset Password
       </h1>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -55,35 +82,28 @@ export default function LoginPage() {
 
         <div>
           <label className="block text-sm font-medium text-aubergine mb-2">
-            Email Address
+            New Password
           </label>
           <input
             required
-            type="email"
-            name="email"
-            autoComplete="email"
-            placeholder="example@gmail.com"
+            minLength={8}
+            type="password"
+            name="password"
+            autoComplete="new-password"
             className={inputClass()}
           />
         </div>
 
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="block text-sm font-medium text-aubergine">
-              Password
-            </label>
-            <Link
-              href="/forgot-password"
-              className="text-xs text-magenta-deep hover:underline"
-            >
-              Forgot password?
-            </Link>
-          </div>
+          <label className="block text-sm font-medium text-aubergine mb-2">
+            Confirm New Password
+          </label>
           <input
             required
+            minLength={8}
             type="password"
-            name="password"
-            autoComplete="current-password"
+            name="confirm"
+            autoComplete="new-password"
             className={inputClass()}
           />
         </div>
@@ -93,16 +113,17 @@ export default function LoginPage() {
           disabled={loading}
           className="w-full rounded-xl bg-aubergine text-cream text-base font-medium py-3.5 hover:bg-aubergine-light transition-colors disabled:opacity-60"
         >
-          {loading ? "Logging in..." : "Log In"}
+          {loading ? "Resetting..." : "Reset Password"}
         </button>
       </form>
-
-      <p className="text-center text-sm text-charcoal-soft mt-8">
-        Don&apos;t have an account?{" "}
-        <Link href="/signup" className="text-magenta-deep hover:underline">
-          Sign up
-        </Link>
-      </p>
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={null}>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }

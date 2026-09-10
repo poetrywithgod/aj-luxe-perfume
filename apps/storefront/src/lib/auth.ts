@@ -122,3 +122,40 @@ export async function getCurrentIdentity(): Promise<SessionIdentity | null> {
   );
   return customer;
 }
+
+// --- Login lockout -----------------------------------------------------
+// Per-account (not per-IP — no Redis/Upstash or similar is set up for
+// this project). Five failed password checks locks the account out for
+// 15 minutes; a successful login clears the counter.
+export const MAX_FAILED_LOGIN_ATTEMPTS = 5;
+export const LOGIN_LOCKOUT_MINUTES = 15;
+
+export async function registerFailedLogin(customerId: string) {
+  const customer = await withDbRetry(() =>
+    prisma.customer.update({
+      where: { id: customerId },
+      data: { failedLoginAttempts: { increment: 1 } },
+      select: { failedLoginAttempts: true },
+    }),
+  );
+
+  if (customer.failedLoginAttempts >= MAX_FAILED_LOGIN_ATTEMPTS) {
+    await withDbRetry(() =>
+      prisma.customer.update({
+        where: { id: customerId },
+        data: {
+          lockedUntil: new Date(Date.now() + LOGIN_LOCKOUT_MINUTES * 60_000),
+        },
+      }),
+    );
+  }
+}
+
+export async function clearFailedLogins(customerId: string) {
+  await withDbRetry(() =>
+    prisma.customer.update({
+      where: { id: customerId },
+      data: { failedLoginAttempts: 0, lockedUntil: null },
+    }),
+  );
+}

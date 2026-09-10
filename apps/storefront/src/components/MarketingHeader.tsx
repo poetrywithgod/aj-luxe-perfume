@@ -38,7 +38,11 @@ export function MarketingHeader({
           ))}
         </nav>
 
-        <div className="hidden sm:block relative ml-auto md:ml-0 w-32 sm:w-44">
+        <form
+          action="/shop"
+          method="GET"
+          className="hidden sm:block relative ml-auto md:ml-0 w-32 sm:w-44"
+        >
           <Search
             className="absolute left-3.5 top-1/2 -translate-y-1/2 text-charcoal-soft"
             size={16}
@@ -46,10 +50,11 @@ export function MarketingHeader({
           />
           <input
             type="search"
+            name="q"
             placeholder="Search"
             className="w-full rounded-full border border-charcoal/15 bg-white/80 py-2 pl-9 pr-3 text-sm outline-none focus:border-magenta focus:ring-2 focus:ring-magenta/20 transition"
           />
-        </div>
+        </form>
 
         <Link
           href={identity ? "/account" : "/login"}
@@ -74,7 +79,7 @@ export function MarketingHeader({
 
       {open && (
         <div className="md:hidden border-t border-charcoal/5 bg-lavender-light/95 backdrop-blur-sm px-4 sm:px-6 py-4">
-          <div className="relative mb-4">
+          <form action="/shop" method="GET" className="relative mb-4">
             <Search
               className="absolute left-3.5 top-1/2 -translate-y-1/2 text-charcoal-soft"
               size={16}
@@ -82,10 +87,11 @@ export function MarketingHeader({
             />
             <input
               type="search"
+              name="q"
               placeholder="Search"
               className="w-full rounded-full border border-charcoal/15 bg-white/80 py-2 pl-9 pr-3 text-sm outline-none focus:border-magenta focus:ring-2 focus:ring-magenta/20 transition"
             />
-          </div>
+          </form>
           <nav className="flex flex-col gap-1 text-sm font-medium text-charcoal">
             {links.map((link) => (
               <Link

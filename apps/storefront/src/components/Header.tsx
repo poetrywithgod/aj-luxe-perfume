@@ -56,7 +56,11 @@ export function Header({ identity }: { identity: SessionIdentity | null }) {
             </span>
           </Link>
 
-          <div className="hidden md:flex flex-1 max-w-md ml-auto relative">
+          <form
+            action="/shop"
+            method="GET"
+            className="hidden md:flex flex-1 max-w-md ml-auto relative"
+          >
             <Search
               className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal-soft"
               size={18}
@@ -64,10 +68,11 @@ export function Header({ identity }: { identity: SessionIdentity | null }) {
             />
             <input
               type="search"
+              name="q"
               placeholder="Search Product..."
               className="w-full rounded-full border border-charcoal/15 bg-white py-2 pl-10 pr-4 text-sm outline-none focus:border-aubergine focus:ring-2 focus:ring-aubergine/20 transition"
             />
-          </div>
+          </form>
 
           <nav className="flex items-center gap-4 sm:gap-6 ml-auto md:ml-0 text-xs">
             <Link

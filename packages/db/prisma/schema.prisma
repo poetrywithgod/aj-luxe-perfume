@@ -53,6 +53,19 @@ model Customer {
   emailVerifyToken   String?   @unique
   emailVerifyExpires DateTime?
 
+  // Forgot-password: a reset link's token/expiry. Cleared once used or
+  // once a fresh one is requested. See /forgot-password + /reset-password.
+  passwordResetToken   String?   @unique
+  passwordResetExpires DateTime?
+
+  // Basic login lockout: incremented on each failed password check by
+  // POST /api/auth/login, reset to 0 on success. lockedUntil is set once
+  // the threshold is hit and checked before the password is even
+  // compared. Per-account rather than per-IP — no rate-limiting infra
+  // (Redis/Upstash) is set up for this project yet, and this needs none.
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+
   orders        Order[]
   reviews       Review[]
   conversations Conversation[]

@@ -29,6 +29,16 @@ function isValidPaymentMethod(value: unknown): value is PaymentMethod {
   return value === "CARD" || value === "BANK_TRANSFER" || value === "PAY_ON_DELIVERY";
 }
 
+// Thrown inside the transaction below when a guarded stock decrement
+// affects zero rows — i.e. someone else's order (or another tab) used up
+// the remaining stock between our read and our write. Caught outside the
+// transaction and turned into a 409 with the product name attached.
+class InsufficientStockError extends Error {
+  constructor(public productName: string) {
+    super(`${productName} doesn't have enough stock left`);
+  }
+}
+
 export async function POST(request: Request) {
   let body: unknown;
   try {
@@ -84,10 +94,11 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
-    // Stock is checked but not decremented here — decrementing inventory
-    // atomically alongside order creation, and handling the admin-side
-    // restock/cancellation flows, is a bigger piece than this round of
-    // fixes covers. Flagged as a real gap, not an oversight.
+    // A cheap up-front check so an obviously-oversold cart fails fast
+    // with a clear per-product message. The transaction below is what
+    // actually makes the decrement safe against a race with another
+    // checkout — this is just to avoid opening a transaction we already
+    // know will fail.
     if (product.stock < item.qty) {
       return NextResponse.json(
         { error: `${product.name} doesn't have enough stock left` },
@@ -105,39 +116,64 @@ export async function POST(request: Request) {
 
   const customerId = await getSessionCustomerId(); // null for guest checkout
 
-  const order = await withDbRetry(() =>
-    prisma.order.create({
-      data: {
-        orderNumber: generateOrderNumber(),
-        status: "PENDING",
-        paymentMethod,
-        subtotal,
-        shippingFee,
-        discount: 0,
-        total,
-        firstName: shipping.firstName.trim(),
-        lastName: shipping.lastName.trim(),
-        email: shipping.email.trim().toLowerCase(),
-        phone: shipping.phone.trim(),
-        address: shipping.address.trim(),
-        state: shipping.state.trim(),
-        city: shipping.city.trim(),
-        customerNote: shipping.note?.trim() || null,
-        customerId: customerId ?? undefined,
-        items: {
-          create: items.map((item) => {
-            const product = productMap.get(item.productId)!;
-            return {
-              productId: item.productId,
-              quantity: item.qty,
-              priceEach: product.price,
-            };
-          }),
-        },
-      },
-      select: { id: true, orderNumber: true },
-    }),
-  );
+  let order: { id: string; orderNumber: string };
+  try {
+    order = await withDbRetry(() =>
+      prisma.$transaction(async (tx) => {
+        // Decrement stock first, guarded by the current stock level in
+        // the same query — if another checkout beat us to the last few
+        // units since the read above, this affects 0 rows and we abort
+        // the whole transaction rather than oversell.
+        for (const item of items) {
+          const product = productMap.get(item.productId)!;
+          const result = await tx.product.updateMany({
+            where: { id: item.productId, stock: { gte: item.qty } },
+            data: { stock: { decrement: item.qty } },
+          });
+          if (result.count === 0) {
+            throw new InsufficientStockError(product.name);
+          }
+        }
+
+        return tx.order.create({
+          data: {
+            orderNumber: generateOrderNumber(),
+            status: "PENDING",
+            paymentMethod,
+            subtotal,
+            shippingFee,
+            discount: 0,
+            total,
+            firstName: shipping.firstName.trim(),
+            lastName: shipping.lastName.trim(),
+            email: shipping.email.trim().toLowerCase(),
+            phone: shipping.phone.trim(),
+            address: shipping.address.trim(),
+            state: shipping.state.trim(),
+            city: shipping.city.trim(),
+            customerNote: shipping.note?.trim() || null,
+            customerId: customerId ?? undefined,
+            items: {
+              create: items.map((item) => {
+                const product = productMap.get(item.productId)!;
+                return {
+                  productId: item.productId,
+                  quantity: item.qty,
+                  priceEach: product.price,
+                };
+              }),
+            },
+          },
+          select: { id: true, orderNumber: true },
+        });
+      }),
+    );
+  } catch (error) {
+    if (error instanceof InsufficientStockError) {
+      return NextResponse.json({ error: error.message }, { status: 409 });
+    }
+    throw error;
+  }
 
   return NextResponse.json(order, { status: 201 });
 }

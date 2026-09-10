@@ -15,6 +15,9 @@ type FiltersProps = {
   priceOptions: FacetOption[];
   activeBrands: string[];
   brandOptions: FacetOption[];
+  // Preserved on every filter-toggle link so an active search isn't
+  // dropped just because the person narrows down by gender/scent/etc.
+  activeQuery?: string;
 };
 
 function toggle(current: string[], value: string): string[] {
@@ -26,13 +29,15 @@ function toggle(current: string[], value: string): string[] {
 function hrefFor(
   basePath: string,
   params: Record<string, string[]>,
+  query?: string,
 ): string {
-  const query = new URLSearchParams();
+  const qs = new URLSearchParams();
   for (const [key, values] of Object.entries(params)) {
-    values.forEach((v) => query.append(key, v));
+    values.forEach((v) => qs.append(key, v));
   }
-  const qs = query.toString();
-  return qs ? `${basePath}?${qs}` : basePath;
+  if (query) qs.set("q", query);
+  const qsString = qs.toString();
+  return qsString ? `${basePath}?${qsString}` : basePath;
 }
 
 function CheckboxRow({
@@ -105,6 +110,7 @@ export function Filters({
   priceOptions,
   activeBrands,
   brandOptions,
+  activeQuery,
 }: FiltersProps) {
   const anyActive =
     activeGenders.length > 0 ||
@@ -131,7 +137,7 @@ export function Filters({
                     scent: activeScents,
                     price: activePriceBuckets,
                     brand: activeBrands,
-                  })}
+                  }, activeQuery)}
                   isSelected={isSelected}
                   label={`For ${gender}`}
                   count={genderCounts[gender] ?? 0}
@@ -156,7 +162,7 @@ export function Filters({
                     scent: toggle(activeScents, opt.value),
                     price: activePriceBuckets,
                     brand: activeBrands,
-                  })}
+                  }, activeQuery)}
                   isSelected={activeScents.includes(opt.value)}
                   label={opt.label}
                   count={opt.count}
@@ -176,7 +182,7 @@ export function Filters({
                   scent: activeScents,
                   price: toggle(activePriceBuckets, opt.value),
                   brand: activeBrands,
-                })}
+                }, activeQuery)}
                 isSelected={activePriceBuckets.includes(opt.value)}
                 label={opt.label}
                 count={opt.count}
@@ -198,7 +204,7 @@ export function Filters({
                     scent: activeScents,
                     price: activePriceBuckets,
                     brand: toggle(activeBrands, opt.value),
-                  })}
+                  }, activeQuery)}
                   isSelected={activeBrands.includes(opt.value)}
                   label={opt.label}
                   count={opt.count}

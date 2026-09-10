@@ -33,6 +33,7 @@ type PageProps = {
     brand?: string | string[];
     sort?: string;
     page?: string;
+    q?: string;
   }>;
 };
 
@@ -100,19 +101,43 @@ export default async function ShopPage({ params, searchParams }: PageProps) {
     PRICE_BUCKETS.map((b) => b.key),
   );
   const activeBrands = normalizeList(sp.brand);
+  const searchQuery = typeof sp.q === "string" ? sp.q.trim() : "";
   const sortKey: SortKey =
     sp.sort && sp.sort in SORT_OPTIONS ? (sp.sort as SortKey) : "newest";
   const currentPage = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
 
   const categoryWhere = category ? { categoryId: category.id } : {};
   const priceWhere = priceBucketWhere(activePriceBuckets);
+  const searchWhere = searchQuery
+    ? {
+        OR: [
+          { name: { contains: searchQuery, mode: "insensitive" as const } },
+          {
+            description: {
+              contains: searchQuery,
+              mode: "insensitive" as const,
+            },
+          },
+          {
+            brand: {
+              name: { contains: searchQuery, mode: "insensitive" as const },
+            },
+          },
+        ],
+      }
+    : undefined;
 
+  // priceWhere and searchWhere both need their own top-level `OR` — an
+  // object spread would let the second silently clobber the first, so
+  // any conditions with their own OR go into an `AND` array instead.
   const where = {
     ...categoryWhere,
     ...(activeGenders.length > 0 && { gender: { in: activeGenders } }),
     ...(activeScents.length > 0 && { scentProfile: { in: activeScents } }),
     ...(activeBrands.length > 0 && { brand: { slug: { in: activeBrands } } }),
-    ...(priceWhere && priceWhere),
+    ...((priceWhere || searchWhere) && {
+      AND: [priceWhere, searchWhere].filter(Boolean),
+    }),
   };
 
   const basePath = category ? `/shop/${category.slug}` : "/shop";
@@ -219,7 +244,11 @@ export default async function ShopPage({ params, searchParams }: PageProps) {
       <div className="flex items-end justify-between mb-8 flex-wrap gap-4">
         <div>
           <h1 className="font-display text-3xl sm:text-4xl font-semibold text-aubergine">
-            {category ? category.name : "All Fragrances"}
+            {searchQuery
+              ? `Results for "${searchQuery}"`
+              : category
+                ? category.name
+                : "All Fragrances"}
           </h1>
           <p className="text-sm text-charcoal-soft mt-1">
             Showing {products.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}
@@ -242,6 +271,7 @@ export default async function ShopPage({ params, searchParams }: PageProps) {
               activePriceBuckets.forEach((p) => query.append("price", p));
               activeBrands.forEach((b) => query.append("brand", b));
               if (key !== "newest") query.set("sort", key);
+              if (searchQuery) query.set("q", searchQuery);
               const href = query.toString()
                 ? `${basePath}?${query.toString()}`
                 : basePath;
@@ -274,6 +304,7 @@ export default async function ShopPage({ params, searchParams }: PageProps) {
           priceOptions={priceOptions}
           activeBrands={activeBrands}
           brandOptions={brandOptions}
+          activeQuery={searchQuery || undefined}
         />
 
         <div className="flex-1">
