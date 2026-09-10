@@ -161,9 +161,9 @@ export default function CartPage() {
               </span>
             </div>
             {/*
-              /checkout doesn't exist yet (no payment integration wired
-              up), so this link is a placeholder for the next step in the
-              flow.
+              Real checkout flow now exists end-to-end (shipping →
+              payment → a real Order record). Coupon/discount support is
+              still the one open piece — see the `discount` note above.
             */}
             <Link
               href="/checkout"
