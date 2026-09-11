@@ -21,7 +21,8 @@ export default async function InboxPage() {
     <div className="max-w-3xl mx-auto px-6 sm:px-8 py-10">
       <h1 className="text-2xl font-semibold text-aubergine mb-1">Inbox</h1>
       <p className="text-sm text-charcoal-soft mb-8">
-        Messages from customers, most recently active first.
+        Messages from customers and the public Contact page, most
+        recently active first.
       </p>
 
       {conversations.length === 0 ? (
@@ -32,6 +33,9 @@ export default async function InboxPage() {
         <div className="space-y-2">
           {conversations.map((c) => {
             const last = c.messages[0];
+            const name = c.customer
+              ? `${c.customer.firstName} ${c.customer.lastName}`
+              : (c.guestName ?? "Guest");
             return (
               <Link
                 key={c.id}
@@ -39,8 +43,13 @@ export default async function InboxPage() {
                 className="flex items-center justify-between gap-4 bg-white rounded-xl border border-aubergine/10 px-5 py-4 hover:border-aubergine/30 transition-colors"
               >
                 <div className="min-w-0">
-                  <p className="font-medium text-aubergine truncate">
-                    {c.customer.firstName} {c.customer.lastName}
+                  <p className="font-medium text-aubergine truncate flex items-center gap-2">
+                    {name}
+                    {!c.customer && (
+                      <span className="text-[10px] font-medium uppercase tracking-wide text-gold bg-gold/10 border border-gold/30 rounded-full px-2 py-0.5">
+                        Guest
+                      </span>
+                    )}
                   </p>
                   {last && (
                     <p className="text-sm text-charcoal-soft truncate mt-0.5">

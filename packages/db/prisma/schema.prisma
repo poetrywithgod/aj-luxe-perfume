@@ -201,8 +201,15 @@ model Conversation {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  customerId String
-  customer   Customer  @relation(fields: [customerId], references: [id])
+  // Nullable to support the public Contact page, which has no logged-in
+  // customer to attach to — guestName/guestEmail carry the visitor's
+  // details in that case instead. Exactly one of (customerId) or
+  // (guestName + guestEmail) is expected to be set; not enforced at the
+  // DB level, same tradeoff as Order's guest-checkout fields.
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+  guestName  String?
+  guestEmail String?
 
   messages   Message[]
 
