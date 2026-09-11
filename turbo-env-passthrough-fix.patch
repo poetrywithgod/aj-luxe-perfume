@@ -1,0 +1,60 @@
+From d98b9e249d9872a73500ffabf934a685ef0e717d Mon Sep 17 00:00:00 2001
+From: Ctrl Kommanda <victor@ctrlbuild.tech>
+Date: Fri, 11 Sep 2026 06:34:16 +0000
+Subject: [PATCH] Fix Vercel build failure: turbo wasn't forwarding env vars to
+ tasks
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Real bug from the actual Vercel build log, not a repeat of the earlier
+missing-generate issue (that part worked — the postinstall step
+successfully generated the Prisma client). The failure was one step
+later: turbo's own build pipeline (db#build, i.e. `prisma generate`
+run again via the task graph) failed with the same 'Cannot resolve
+environment variable: DIRECT_URL' error, even though DIRECT_URL was
+correctly set on the Vercel project. Vercel's own build log named the
+cause directly: Turborepo only forwards env vars into a task's
+environment when they're declared in turbo.json (globalEnv or
+per-task env) — anything set on the platform but missing from that
+list is silently dropped from the task's process.env, strict-mode
+behavior by design, not a Vercel-side issue.
+
+Added "globalEnv": ["DATABASE_URL", "DIRECT_URL", "SESSION_SECRET",
+"ADMIN_SESSION_SECRET"] to turbo.json. NEXT_PUBLIC_SITE_URL doesn't
+need listing — turbo auto-detects NEXT_PUBLIC_* vars for Next.js apps
+it recognizes in the workspace.
+
+Sandbox-verified the actual fix, not just a config-shape check: ran
+`DATABASE_URL=... DIRECT_URL=... SESSION_SECRET=... turbo run build
+--filter=db` directly (reproducing what Vercel's build step does) —
+before this change that reproduces the exact 'Cannot resolve
+environment variable' error from the log; after it, the task gets
+past config loading entirely and fails only on this sandbox's
+standing, unrelated network restriction to binaries.prisma.sh (the
+same limitation every round has hit, and exactly where the real
+Vercel build's postinstall step succeeded, confirming this is purely
+a sandbox constraint, not a real problem).
+---
+ turbo.json | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/turbo.json b/turbo.json
+index 38842c3..93a71b2 100644
+--- a/turbo.json
++++ b/turbo.json
+@@ -1,5 +1,11 @@
+ {
+   "$schema": "https://turbo.build/schema.json",
++  "globalEnv": [
++    "DATABASE_URL",
++    "DIRECT_URL",
++    "SESSION_SECRET",
++    "ADMIN_SESSION_SECRET"
++  ],
+   "tasks": {
+     "build": {
+       "dependsOn": ["^build"],
+-- 
+2.43.0
+

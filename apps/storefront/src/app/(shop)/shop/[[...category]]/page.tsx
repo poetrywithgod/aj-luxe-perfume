@@ -130,14 +130,20 @@ export default async function ShopPage({ params, searchParams }: PageProps) {
   // priceWhere and searchWhere both need their own top-level `OR` — an
   // object spread would let the second silently clobber the first, so
   // any conditions with their own OR go into an `AND` array instead.
+  // `.filter(Boolean)` alone doesn't narrow away `undefined` in the
+  // array's type (a known TS gap), which was silently corrupting this
+  // whole query's inferred return type — hence the explicit type guard.
+  const andConditions = [priceWhere, searchWhere].filter(
+    (condition): condition is NonNullable<typeof condition> =>
+      Boolean(condition),
+  );
+
   const where = {
     ...categoryWhere,
     ...(activeGenders.length > 0 && { gender: { in: activeGenders } }),
     ...(activeScents.length > 0 && { scentProfile: { in: activeScents } }),
     ...(activeBrands.length > 0 && { brand: { slug: { in: activeBrands } } }),
-    ...((priceWhere || searchWhere) && {
-      AND: [priceWhere, searchWhere].filter(Boolean),
-    }),
+    ...(andConditions.length > 0 && { AND: andConditions }),
   };
 
   const basePath = category ? `/shop/${category.slug}` : "/shop";
