@@ -3,6 +3,7 @@ import { Cormorant_Garamond, Manrope } from "next/font/google";
 import { Footer } from "@/components/Footer";
 import { CartProvider } from "@/lib/cart-context";
 import { CheckoutProvider } from "@/lib/checkout-context";
+import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 const cormorant = Cormorant_Garamond({
@@ -19,6 +20,7 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "AJ Luxe Perfume | Authentic Luxury Fragrances in Nigeria",
     template: "%s | AJ Luxe Perfume",

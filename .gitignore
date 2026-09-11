@@ -18,6 +18,11 @@ packages/db/generated/
 # turbo
 .turbo/
 
+# tooling caches (jiti/tsx, generated at the repo root when running
+# TS config files like prisma7.config.ts or the db:seed script)
+/jiti/
+/node-compile-cache/
+
 # build outputs
 dist/
 build/

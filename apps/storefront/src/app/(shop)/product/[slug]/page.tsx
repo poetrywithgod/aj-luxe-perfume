@@ -9,6 +9,7 @@ import { AddToCartControl } from "@/components/product/AddToCartControl";
 import { ReviewCarousel } from "@/components/product/ReviewCarousel";
 import { ReviewForm } from "@/components/product/ReviewForm";
 import { formatNaira } from "@/lib/format";
+import { SITE_URL } from "@/lib/site";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -102,8 +103,39 @@ export default async function ProductPage({ params }: PageProps) {
       )
     : null;
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.description,
+    image: product.images,
+    brand: product.brand ? { "@type": "Brand", name: product.brand.name } : undefined,
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "NGN",
+      price: product.price.toString(),
+      availability:
+        product.stock > 0
+          ? "https://schema.org/InStock"
+          : "https://schema.org/OutOfStock",
+      url: `${SITE_URL}/product/${product.slug}`,
+    },
+    ...(ratings.length > 0 && {
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue: avgRating.toFixed(1),
+        reviewCount: ratings.length,
+      },
+    }),
+  };
+
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 py-10">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-10">
       <nav aria-label="Breadcrumb" className="text-xs text-charcoal-soft mb-6">
         <Link href="/" className="hover:text-aubergine transition-colors">
           Home
@@ -286,6 +318,7 @@ export default async function ProductPage({ params }: PageProps) {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
